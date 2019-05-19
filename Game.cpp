@@ -36,7 +36,6 @@ void Game::start() {
 
     sceneManager.draw(window, time);
     window.display();
-
     time += t.asMicroseconds();
   }
 }

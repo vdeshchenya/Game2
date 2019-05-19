@@ -1,3 +1,4 @@
+#include <iostream>
 #include "Scene_manager.h"
 
 Scene_manager::Scene_manager(const int &width, const int &height, RenderWindow &window) : active_scene(SceneType::MENU),
@@ -9,7 +10,10 @@ Scene_manager::Scene_manager(const int &width, const int &height, RenderWindow &
                                                                                                       window),
                                                                                           game_scene(width,
                                                                                                      height,
-                                                                                                     window) {};
+                                                                                                     window),
+                                                                                          chooselevel_scene(width,
+                                                                                                            height,
+                                                                                                            window) {};
 
 void Scene_manager::keyRelease(Keyboard::Key &code, RenderWindow &window) {
   switch (active_scene) {
@@ -20,18 +24,20 @@ void Scene_manager::keyRelease(Keyboard::Key &code, RenderWindow &window) {
           window.close();
         else {
           if (new_scene == 0)
-            change_scene(SceneType::GAME, window);
+            change_scene(SceneType::CHOOSELEVEL, window);
           else if (new_scene == 1)
             change_scene(SceneType::OPTION, window);
         }
       } else
         menu_scene.keyRelease(code);
+      break;
     }
     case SceneType::GAME: {
       if (code == Keyboard::Space || code == Keyboard::Escape) {
         change_scene(SceneType::PAUSE, window);
       }
       game_scene.keyRelease(code);
+      break;
     }
     case SceneType::PAUSE: {
       if (code == Keyboard::Enter || code == Keyboard::Space) {
@@ -53,6 +59,16 @@ void Scene_manager::keyRelease(Keyboard::Key &code, RenderWindow &window) {
         }
       } else
         pause_scene.keyRelease(code);
+      break;
+    }
+    case SceneType::CHOOSELEVEL : {
+      if (code == Keyboard::Enter || code == Keyboard::Space) {
+        change_scene(SceneType::GAME, window);
+        game_scene.setLevel(chooselevel_scene.GetSelected());
+        break;
+      }else
+        chooselevel_scene.keyRelease(code);
+      break;
     }
     default:break;
   }
@@ -72,16 +88,22 @@ void Scene_manager::draw(RenderWindow &window, ll &time) {
       pause_scene.draw(window, time);
       break;
     }
+    case SceneType::CHOOSELEVEL: {
+      chooselevel_scene.draw(window, time);
+      break;
+    }
     default:break;
   }
 }
 
 void Scene_manager::change_scene(const SceneType &new_scene_type, RenderWindow &window) {
   active_scene = new_scene_type;
-  if (active_scene == SceneType::GAME)
-    SetSize(window, game_scene.getSize().x, game_scene.getSize().y);
+  if (active_scene == SceneType::CHOOSELEVEL)
+    SetSize(window, chooselevel_scene.getSize().x, chooselevel_scene.getSize().y);
   else if (active_scene == SceneType::PAUSE)
-    pause_scene = Pause_scene(window.getSize().x, window.getSize().y, window);
+    SetSize(window, pause_scene.getSize().x, pause_scene.getSize().y);
   else if (active_scene == SceneType::MENU)
     SetSize(window, menu_scene.getSize().x, menu_scene.getSize().y);
+  else if (active_scene == SceneType::GAME)
+    SetSize(window, game_scene.getSize().x, game_scene.getSize().y);
 }

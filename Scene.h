@@ -2,6 +2,8 @@
 #ifndef GMAE_SCENE_H
 #define GMAE_SCENE_H
 
+#define path "/media/data/GoogleCloud/MIPT/Inf/Game2/"
+
 #include <SFML/Graphics.hpp>
 using namespace sf;
 

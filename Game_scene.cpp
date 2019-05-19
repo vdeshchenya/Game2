@@ -2,6 +2,9 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <algorithm>
+#include <cmath>
 
 Game_scene::Game_scene(const int &width_, const int &height_, RenderWindow &window) : Scene(width_, height_),
                                                                                       K(1),
@@ -14,19 +17,70 @@ Game_scene::Game_scene(const int &width_, const int &height_, RenderWindow &wind
                                                                                       scoreForHit(10),
                                                                                       WField(5),
                                                                                       HField(9) {
-  font.loadFromFile("Fonts/rita.ttf");
-  hearth_image.loadFromFile("Images/Hearth.png");
-  backgroundTexture.loadFromFile("Backgrounds/Game.png");
-  textGameOver_image.loadFromFile("Images/textGameOver.png");
+  font.loadFromFile(std::string(path) + "Fonts/rita.ttf");
+  hearth_image.loadFromFile(std::string(path) + "Images/Hearth.png");
+  backgroundTexture.loadFromFile(std::string(path) + "Backgrounds/Game.png");
+  textGameOver_image.loadFromFile(std::string(path) + "Images/textGameOver.png");
   hearth_texture.loadFromImage(hearth_image);
   textGameOver_texture.loadFromImage(textGameOver_image);
   textGameOver_sprite.setPosition(width / 2.5, height / 3.0);
-  blocks.Start = nullptr;
-  player.Init();
-  player = MainPlayer({1 + WField / 2 * cubeSize, SpaceForTop + (HField - 2) * cubeSize + 1}, Move::NOTHING);
-  width = WField * cubeSize + 2, height = HField * cubeSize + SpaceForTop + 2;
+  width = 400;
+  height = 700;
   text.setFillColor(Color::Black);
   text.setPosition(width - 22, -6);
+  player_image.loadFromFile((std::string(path) + "Textures/alienPink.png"));
+  player_texture.loadFromImage(player_image);
+  player_sprite.setTexture(player_texture);
+
+  OneX = (double) width / levelWidth;
+  OneY = (double) height / levelVisibleHeight;
+}
+
+void Game_scene::setLevel(const int &new_level) {
+  level = new_level;
+  LoadLevel();
+}
+
+void Game_scene::LoadLevel() {
+  std::ifstream in(std::string(path) + "Levels/level" + std::to_string(level));
+  for (int i = 0; i < levelHeight; ++i) {
+    std::string temp;
+    std::getline(in, temp);
+    for (int j = 0; j < levelHeight; ++j) {
+      LEVEL[i][j] = temp[j];
+      if (temp[j] == '#') {
+        playerY0 = i * OneY;
+        playerX = j * OneX;
+        playerY = i * OneY;
+      }
+    }
+  }
+  switch (level) {
+    case 0 : {
+      levelsPlatform_images[0].loadFromFile((std::string(path) + "Textures/levelGrassLeft.png"));
+      levelsPlatform_images[1].loadFromFile((std::string(path) + "Textures/levelGrassMid.png"));
+      levelsPlatform_images[2].loadFromFile((std::string(path) + "Textures/levelGrassRight.png"));
+      break;
+    }
+    case 1 : {
+      levelsPlatform_images[0].loadFromFile((std::string(path) + "Textures/levelCandyLeft.png"));
+      levelsPlatform_images[1].loadFromFile((std::string(path) + "Textures/levelCandyMid.png"));
+      levelsPlatform_images[2].loadFromFile((std::string(path) + "Textures/levelCandyRight.png"));
+      break;
+    }
+    case 2 : {
+      levelsPlatform_images[0].loadFromFile((std::string(path) + "Textures/levelIceLeft.png"));
+      levelsPlatform_images[1].loadFromFile((std::string(path) + "Textures/levelIceMid.png"));
+      levelsPlatform_images[2].loadFromFile((std::string(path) + "Textures/levelIceRight.png"));
+      break;
+    }
+  }
+
+  for (int i = 0; i < 3; ++i) {
+    levelsPlatform_texture[i].loadFromImage(levelsPlatform_images[i]);
+    levelsPlatform_sprites[i].setTexture(levelsPlatform_texture[i]);
+  }
+  in.close();
 }
 
 void Game_scene::draw(RenderWindow &window, ll &time) {
@@ -37,100 +91,46 @@ void Game_scene::draw(RenderWindow &window, ll &time) {
     window.draw(textGameOver_sprite);
     return;
   }
-  GetMove();
-  DrawField(window);
+  DrawMap(window);
   DrawPlayer(window);
-  DrawBlocks(window);
   DrawGameStats(window);
   if (TimeForNewBlock == 3) {
-    NewBlock();
     TimeForNewBlock = 0;
     K *= 1.1;
   }
   if (time > 1000000 / K) {
-    score += scoreForStep;
     time = 0;
     TimeForNewBlock += 1;
-    if (blocks.Start == nullptr)
-      return;
-    auto node = blocks.Start;
-    while (node->next != nullptr) {
-      node->data.Act({0, cubeSize});
-      if (node->data.GetY() > height) {
-        if (blocks.Start == node) {
-          auto node1 = node->next;
-          delete node;
-          blocks.Start = node1;
-        } else {
-          auto node1 = node->prev, node2 = node->next;
-          delete node;
-          node1->next = node2;
-          node2->prev = node1;
-        }
-      }
-      node = node->next;
-    }
-
-    node->data.Act({0, cubeSize});
-    if (node->data.GetY() > height) {
-      if (blocks.Start == node) {
-        auto node1 = node->next;
-        delete node;
-        blocks.Start = node1;
-      } else {
-        auto node1 = node->prev, node2 = node->next;
-        delete node;
-        node1->next = node2;
-        node2->prev = node1;
-      }
-    }
   }
 }
 
 void Game_scene::keyRelease(Keyboard::Key &code) {
   switch (code) {
-    case Keyboard::Q: {
-      player.SetMove(Move::ROTATELEFT);
-      break;
-    }
-    case Keyboard::E: {
-      player.SetMove(Move::ROTATERIGHT);
-      break;
-    }
     case Keyboard::A: {
-      player.SetMove(Move::LEFT);
+      playerX -= OneX;
       break;
     }
     case Keyboard::Left: {
-      player.SetMove(Move::LEFT);
+      playerX -= OneX;
       break;
     }
     case Keyboard::W: {
-      player.SetMove(Move::UP);
-      break;
-    }
-    case Keyboard::Up: {
-      player.SetMove(Move::UP);
+      playerY += OneY;
       break;
     }
     case Keyboard::D: {
-      player.SetMove(Move::RIGHT);
+      playerX += OneX;
       break;
     }
     case Keyboard::Right: {
-      player.SetMove(Move::RIGHT);
+      playerX += 1;
       break;
     }
     case Keyboard::S: {
-      player.SetMove(Move::DOWN);
-      break;
-    }
-    case Keyboard::Down: {
-      player.SetMove(Move::DOWN);
+      playerY -= OneY;
       break;
     }
     case Keyboard::F5: {
-      NewBlock();
       break;
     }
     default: break;
@@ -176,117 +176,50 @@ void Game_scene::DrawGameStats(RenderWindow &window) {
   }
 }
 
-void Game_scene::GetMove() {
-  player.DoMove(WField, HField, SpaceForTop);
-}
+void Game_scene::DrawMap(RenderWindow &window) {
+  for (int i = std::max(0, int(playerY/OneY) - 5); i < std::min(levelVisibleHeight, int(playerY/OneY + 11)); ++i) {
+    for (int j = 0; j < levelWidth; ++j) {
+      switch (LEVEL[i][j]) {
+        case '*': break;
+        case 'A': {
+          levelsPlatform_sprites[0].setTexture(levelsPlatform_texture[0]);
+          levelsPlatform_sprites[0].setPosition(0 + OneX * j, 0 + OneY * i - (playerY0 - playerY));
+          levelsPlatform_sprites[0].setScale(
+              OneX / levelsPlatform_sprites[0].getLocalBounds().width,
+              OneY / levelsPlatform_sprites[0].getLocalBounds().height);
+          window.draw(levelsPlatform_sprites[0]);
+          break;
+        }
 
-void Game_scene::DrawField(RenderWindow &window) {
-  Vertex line1[] = {
-      Vertex(Vector2f(1.f, 0.f)),
-      Vertex(Vector2f(1.f, HField * cubeSize + SpaceForTop + 2))
-  };
-  Vertex line2[] = {
-      Vertex(Vector2f(WField * cubeSize + 2, 0.f)),
-      Vertex(Vector2f(WField * cubeSize + 2, HField * cubeSize + SpaceForTop + 2))
-  };
-  Vertex line3[] = {
-      Vertex(Vector2f(0.f, HField * cubeSize + SpaceForTop + 2)),
-      Vertex(Vector2f(WField * cubeSize + 2, HField * cubeSize + SpaceForTop + 2))
-  };
-  Vertex line4[] = {
-      Vertex(Vector2f(0.f, SpaceForTop)),
-      Vertex(Vector2f(WField * cubeSize + 2, SpaceForTop))
-  };
-  line1[0].color = Color::Black;
-  line1[1].color = Color::Black;//left
-  line2[0].color = Color::Black;
-  line2[1].color = Color::Black;//right
-  line3[0].color = Color::Black;
-  line3[1].color = Color::Black;//bot
-  line4[0].color = Color::Black;
-  line4[1].color = Color::Black;//top
+        case 'B': {
+          levelsPlatform_sprites[1].setTexture(levelsPlatform_texture[1]);
+          levelsPlatform_sprites[1].setPosition(0 + OneX * j, 0 + OneY * i - (playerY0 - playerY));
+          levelsPlatform_sprites[1].setScale(
+              OneX / levelsPlatform_sprites[1].getLocalBounds().width,
+              OneY / levelsPlatform_sprites[1].getLocalBounds().height);
+          window.draw(levelsPlatform_sprites[1]);
+          break;
+        }
 
-  window.draw(line1, 2, Lines);
-  window.draw(line2, 2, Lines);
-  window.draw(line3, 2, Lines);
-  window.draw(line4, 2, Lines);
+        case 'C': {
+          levelsPlatform_sprites[2].setTexture(levelsPlatform_texture[2]);
+          levelsPlatform_sprites[2].setPosition(0 + OneX * j, 0 + OneY * i - (playerY0 - playerY));
+          levelsPlatform_sprites[2].setScale(
+              OneX / levelsPlatform_sprites[2].getLocalBounds().width,
+              OneY / levelsPlatform_sprites[2].getLocalBounds().height);
+          window.draw(levelsPlatform_sprites[2]);
+          break;
+        }
+      }
+    }
+  }
 }
 
 void Game_scene::DrawPlayer(RenderWindow &window) {
-  player.Draw(window);
-}
-
-void Game_scene::DrawBlocks(RenderWindow &window) {
-  if (blocks.Start == nullptr)
-    return;
-  auto node = blocks.Start;
-  while (node->next != nullptr) {
-    if (node->data.GetY() > SpaceForTop) {
-      node->data.Draw(window);
-    }
-    node = node->next;
-  }
-
-  if (node->data.GetY() > SpaceForTop) {
-    node->data.Draw(window);
-  }
-
-  for (const auto &it: player.GetPlayer()) {
-    node = blocks.Start;
-    while (node->next != nullptr) {
-      if (IfContact(node->data, it))
-        Contact(node, it);
-      node = node->next;
-    }
-    if (IfContact(node->data, it))
-      Contact(node, it);
-  }
-}
-
-void Game_scene::NewBlock() {
-  srand(time(nullptr));
-  int x = rand() % WField;
-  int type = rand() % 6;
-
-  Node *new_node = new Node(static_cast<BlockType>(type), 1 + x * cubeSize);
-  if (blocks.Start == nullptr) {
-    blocks.Start = new_node;
-  } else {
-    auto node = blocks.Start;
-    while (node->next != nullptr)
-      node = node->next;
-    node->next = new_node;
-    new_node->prev = node;
-  }
-}
-
-void Game_scene::Contact(Node *block, const BlockPlayer &quad) {
-  switch (block->data.GetType()) {
-    case BlockType::Life: {
-      if (lifes < 4)
-        ++lifes;
-      break;
-    }
-    case BlockType::Black: {
-      --lifes;
-      break;
-    }
-    default: {
-      if (static_cast<int>(block->data.GetType()) == static_cast<int>(quad.GetType()))
-        score += scoreForHit;
-      else
-        --lifes;
-      break;
-    }
-  }
-  if (blocks.Start == block) {
-    auto node = block->next;
-    delete block;
-    blocks.Start = node;
-  } else {
-    auto node1 = block->prev, node2 = block->next;
-    delete block;
-    node1->next = node2;
-    node2->prev = node1;
-  }
+  player_sprite.setTexture(player_texture);
+  player_sprite.setPosition(playerX, OneY * 7);
+  player_sprite.setScale(
+      OneX / player_sprite.getLocalBounds().width,
+      OneY / player_sprite.getLocalBounds().height);
+  window.draw(player_sprite);
 }

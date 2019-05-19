@@ -2,8 +2,6 @@
 #ifndef GMAE_GAME_SCENE_H
 #define GMAE_GAME_SCENE_H
 #include "Scene.h"
-#include "MainPlayer.h"
-#include "List.h"
 
 class Game_scene : public Scene {
  public:
@@ -11,13 +9,21 @@ class Game_scene : public Scene {
 
   void draw(RenderWindow &window, ll &time) override;
   void keyRelease(Keyboard::Key &code);
+  void setLevel(const int& new_level);
 
  private:
-  MainPlayer player;
   int score;
   int lifes;
 
   unsigned long long int t;
+
+
+  Texture levelsPlatform_texture[3];
+  Sprite levelsPlatform_sprites[3];
+  Image levelsPlatform_images[3];
+  Texture player_texture;
+  Sprite player_sprite;
+  Image player_image;
 
   Texture hearth_texture;
   Sprite hearth_sprite;
@@ -32,15 +38,17 @@ class Game_scene : public Scene {
   int scoreForHit;
   Text text;
   int scoreForStep;
-  List blocks;
+  int level;
+  double OneX, OneY;
+  double playerX, playerY, playerY0;
+  int levelWidth = 9, levelHeight = 50, levelVisibleHeight = 15;
+  char LEVEL[50][9];
 
   void DrawGameStats(RenderWindow &window);
   void DrawPlayer(RenderWindow &window);
-  void DrawField(RenderWindow &texture);
-  void DrawBlocks(RenderWindow &window);
+  void DrawMap(RenderWindow &texture);
   void GetMove();
-  void NewBlock();
-  void Contact(Node *block, const BlockPlayer &quad);
+  void LoadLevel();
 };
 
 #endif //GMAE_GAME_SCENE_H

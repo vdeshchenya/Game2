@@ -6,11 +6,13 @@
 #include "Menu_scene.h"
 #include "Game_scene.h"
 #include "Pause_scene.h"
+#include "ChooseLevel_scene.h"
 
 enum class SceneType {
   GAME,
   OPTION,
   PAUSE,
+  CHOOSELEVEL,
   MENU
 };
 
@@ -25,6 +27,7 @@ class Scene_manager {
   Pause_scene pause_scene;
   Menu_scene menu_scene;
   Game_scene game_scene;
+  ChooseLevel_scene chooselevel_scene;
   SceneType active_scene;
 };
 
